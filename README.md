@@ -1,4 +1,4 @@
-# Multi-Modal Damage Claim Verification System
+# AI-Powered Multimodal Damage Claim Verification System
 
 An AI-powered multimodal system for verifying insurance damage claims using images, claim conversations, user history, and evidence requirements.
 
@@ -12,6 +12,30 @@ This project automates the review of damage claims for:
 
 The system analyzes uploaded images together with claim descriptions to determine whether the visual evidence supports, contradicts, or is insufficient to verify the claim.
 
+## System Architecture
+
+```mermaid
+flowchart TD
+
+A[Claims CSV] --> B[Load Claim]
+B --> C[Load User History]
+B --> D[Load Evidence Requirements]
+
+C --> E[Build Multimodal Prompt]
+D --> E
+
+F[Claim Images] --> E
+
+E --> G[Gemini Flash Lite]
+
+G --> H[Structured JSON]
+
+H --> I[Validator]
+
+I --> J[Schema Normalization]
+
+J --> K[output.csv]
+```
 ## Features
 
 - Image-based damage verification using Google's Gemini multimodal model
@@ -30,10 +54,38 @@ The system analyzes uploaded images together with claim descriptions to determin
 ## Tech Stack
 
 - Python
-- Gemini API
+- Google Gemini Vision API
 - Pandas
 - Pillow
 - CSV Processing
+- Prompt Engineering
+- JSON Parsing
+- Structured Output Generation
+- Rule-Based Validation
+- Data Validation
+
+## Skills Demonstrated
+
+- Multimodal AI
+- Image Processing
+- API Integration
+- Prompt Engineering
+- Data Validation
+- JSON Processing
+- Rule-Based Systems
+- Software Testing
+- CSV Data Processing
+
+## Workflow
+
+1. Load claim information from the input dataset.
+2. Retrieve corresponding user history and evidence requirements.
+3. Load one or more submitted images.
+4. Generate a multimodal prompt combining text and images.
+5. Use Gemini Flash Lite to evaluate the evidence.
+6. Produce structured JSON predictions.
+7. Validate and normalize outputs.
+8. Export the final predictions to `output.csv`.
 
 ## Project Structure
 
@@ -46,15 +98,31 @@ code/
     └── evaluation_report.md
 ```
 
-## Workflow
+## How to Run
 
-1. Read claim data and image paths.
-2. Load user history and evidence requirements.
-3. Process one or more uploaded images.
-4. Send multimodal prompt to Gemini.
-5. Generate structured claim decisions.
-6. Validate outputs against the required schema.
-7. Export predictions.
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Create a `.env` file:
+
+```text
+GEMINI_API_KEY=your_api_key
+```
+
+Run the prediction pipeline:
+
+```bash
+python code/main.py
+```
+
+Validate the output:
+
+```bash
+python code/validator.py
+```
 
 ## Validation
 
