@@ -1,36 +1,21 @@
-import pandas as pd
-import re
 import os
-
-print("🛡️ Initializing Post-Processing Schema Guard Validation Pipeline...")
-
-claims_input_df = pd.read_csv("dataset/claims.csv")
-df = pd.read_csv("dataset/output.csv")
+import re
+import pandas as pd
 
 severity_map = {
     "minor": "low", "moderate": "medium", "major": "high",
     "severe": "high", "negligible": "low", "not applicable": "unknown",
 }
-df["severity"] = df["severity"].astype(str).str.lower().str.strip().replace(severity_map)
 
 valid_severities = {"none", "low", "medium", "high", "unknown"}
-df.loc[~df["severity"].isin(valid_severities), "severity"] = "unknown"
 
-df["evidence_standard_met"] = df["evidence_standard_met"].astype(str).str.lower().str.strip()
 evidence_map = {"true": "true", "false": "false", "supported": "true"}
-df["evidence_standard_met"] = df["evidence_standard_met"].replace(evidence_map)
-
 valid_booleans = ["true", "false"]
-df.loc[~df["evidence_standard_met"].isin(valid_booleans), "evidence_standard_met"] = "false"
-df["valid_image"] = df["valid_image"].astype(str).str.lower().str.strip().replace(evidence_map)
-df.loc[~df["valid_image"].isin(valid_booleans), "valid_image"] = "false"
 
 def sanitize_text(text):
     if not isinstance(text, str):
         return text
     return re.sub(r"(_input_token_count|quotaId|generativelanguage|RPC).*$", "", text).strip()
-
-df["user_claim"] = df["user_claim"].apply(sanitize_text)
 
 allowed_risk_enums = {
     "none", "blurry_image", "cropped_or_obstructed", "low_light_or_glare",
@@ -68,8 +53,6 @@ def strict_normalize_risk_flags(val):
         return "none"
     return ";".join(final_tokens)
 
-df["risk_flags"] = df["risk_flags"].apply(strict_normalize_risk_flags)
-
 issue_type_map = {
     "windshield_crack": "crack",
     "cracked_screen": "crack",
@@ -102,13 +85,6 @@ issue_type_map = {
     "damaged_item": "unknown"
 }
 
-df["issue_type"] = (
-    df["issue_type"]
-    .astype(str)
-    .str.strip()
-    .replace(issue_type_map)
-)
-
 allowed_issue_types = {
     "dent",
     "scratch",
@@ -123,11 +99,6 @@ allowed_issue_types = {
     "none",
     "unknown"
 }
-
-df.loc[
-    ~df["issue_type"].isin(allowed_issue_types),
-    "issue_type"
-] = "unknown"
 
 object_part_map = {
     "front bumper": "front_bumper",
@@ -158,13 +129,6 @@ object_part_map = {
     "scooter side panel": "unknown",
 }
 
-df["object_part"] = (
-    df["object_part"]
-    .astype(str)
-    .str.strip()
-    .replace(object_part_map)
-)
-
 allowed_object_parts = {
     "front_bumper","rear_bumper","door","hood","windshield",
     "side_mirror","headlight","taillight","fender","quarter_panel",
@@ -172,11 +136,6 @@ allowed_object_parts = {
     "port","base","box","package_corner","package_side","seal",
     "label","contents","item","unknown"
 }
-
-df.loc[
-    ~df["object_part"].isin(allowed_object_parts),
-    "object_part"
-] = "unknown"
 
 def clean_supporting_image_ids(val):
     if pd.isna(val) or str(val).lower() in ["none", "nan", "", "unknown"]:
@@ -192,8 +151,6 @@ def clean_supporting_image_ids(val):
     final_ids = sorted(list(set(clean_ids)))
     return ";".join(final_ids) if final_ids else "none"
 
-df["supporting_image_ids"] = df["supporting_image_ids"].apply(clean_supporting_image_ids)
-
 required_cols = [
     "user_id", "image_paths", "user_claim", "claim_object",
     "evidence_standard_met", "evidence_standard_met_reason",
@@ -201,14 +158,60 @@ required_cols = [
     "claim_status_justification", "supporting_image_ids",
     "valid_image", "severity"
 ]
-df = df[required_cols]
 
-df["user_claim_clean"] = df["user_claim"].str.strip()
-claims_input_df["user_claim_clean"] = claims_input_df["user_claim"].str.strip()
+def validate_dataframe(df):
+    """Normalize raw model output into the final schema (same rules for the pipeline and the evaluation)."""
+    df = df.copy()
+    df["severity"] = df["severity"].astype(str).str.lower().str.strip().replace(severity_map)
+    df.loc[~df["severity"].isin(valid_severities), "severity"] = "unknown"
+    df["evidence_standard_met"] = df["evidence_standard_met"].astype(str).str.lower().str.strip()
+    df["evidence_standard_met"] = df["evidence_standard_met"].replace(evidence_map)
+    df.loc[~df["evidence_standard_met"].isin(valid_booleans), "evidence_standard_met"] = "false"
+    df["valid_image"] = df["valid_image"].astype(str).str.lower().str.strip().replace(evidence_map)
+    df.loc[~df["valid_image"].isin(valid_booleans), "valid_image"] = "false"
+    df["user_claim"] = df["user_claim"].apply(sanitize_text)
+    df["risk_flags"] = df["risk_flags"].apply(strict_normalize_risk_flags)
+    df["issue_type"] = (
+        df["issue_type"]
+        .astype(str)
+        .str.strip()
+        .replace(issue_type_map)
+    )
+    df.loc[
+        ~df["issue_type"].isin(allowed_issue_types),
+        "issue_type"
+    ] = "unknown"
+    df["object_part"] = (
+        df["object_part"]
+        .astype(str)
+        .str.strip()
+        .replace(object_part_map)
+    )
+    df.loc[
+        ~df["object_part"].isin(allowed_object_parts),
+        "object_part"
+    ] = "unknown"
+    df["supporting_image_ids"] = df["supporting_image_ids"].apply(clean_supporting_image_ids)
+    df = df[required_cols]
+    return df
 
-df['user_claim_clean'] = pd.Categorical(df['user_claim_clean'], categories=claims_input_df['user_claim_clean'], ordered=True)
-df = df.sort_values('user_claim_clean').reset_index(drop=True)
-df = df.drop(columns=["user_claim_clean"])
 
-df.to_csv("dataset/output.csv", index=False)
-print("🎉 Success! Perfect schema and vertical text sequences verified and locked down.")
+def main():
+    print("Initializing post-processing validation...")
+    claims_input_df = pd.read_csv("dataset/claims.csv")
+    df = pd.read_csv("dataset/output.csv")
+    df = validate_dataframe(df)
+
+    df["user_claim_clean"] = df["user_claim"].str.strip()
+    claims_input_df["user_claim_clean"] = claims_input_df["user_claim"].str.strip()
+
+    df['user_claim_clean'] = pd.Categorical(df['user_claim_clean'], categories=claims_input_df['user_claim_clean'], ordered=True)
+    df = df.sort_values('user_claim_clean').reset_index(drop=True)
+    df = df.drop(columns=["user_claim_clean"])
+
+    df.to_csv("dataset/output.csv", index=False)
+    print("Validation complete: output schema verified.")
+
+
+if __name__ == "__main__":
+    main()

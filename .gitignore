@@ -26,3 +26,5 @@ dataset/
 
 # Logs
 *.log
+# Evaluation predictions (derived from the dataset)
+code/evaluation/sample_predictions.csv
