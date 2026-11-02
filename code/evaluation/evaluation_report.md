@@ -202,13 +202,15 @@ Three metrics were measured:
 
 ## Evaluation Results
 
-| Metric                | Result      |
-| --------------------- | ----------- |
-| Claim Status Accuracy | 85% (17/20) |
-| Severity Accuracy     | 35%         |
-| Issue Type Accuracy   | 40%         |
+| Metric                | Result (2 runs) |
+| --------------------- | --------------- |
+| Claim Status Accuracy | 75% (15/20)     |
+| Severity Accuracy     | 30–35%          |
+| Issue Type Accuracy   | 40% (8/20)      |
 
-Claim Status Accuracy was treated as the primary metric because it directly determines the final claim decision.
+The evaluation runs the same prompt, schema and validator as the production pipeline (`code/shared.py`, `code/validator.py`). With only 20 labeled claims, one claim is 5 percentage points, so treat these as approximate. An earlier prompt that did not list the allowed issue types and object parts scored 70% / 25% / 30% on the same sample. An earlier version of this report cited 85% claim-status accuracy, which came from an evaluation that used a different prompt from the production pipeline, so that figure was withdrawn.
+
+Claim Status Accuracy is the primary metric because it directly determines the final claim decision.
 
 ---
 
