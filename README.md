@@ -66,15 +66,10 @@ J --> K[output.csv]
 
 ## Skills Demonstrated
 
-- Multimodal AI
-- Image Processing
-- API Integration
-- Prompt Engineering
-- Data Validation
-- JSON Processing
-- Rule-Based Systems
-- Software Testing
-- CSV Data Processing
+- Multimodal AI and image analysis
+- API integration
+- Structured data validation
+- Evaluation and testing
 
 ## Workflow
 

@@ -1,4 +1,5 @@
 google-genai
 pandas
 Pillow
+pydantic
 python-dotenv
